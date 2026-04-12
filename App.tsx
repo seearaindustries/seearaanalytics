@@ -1,158 +1,104 @@
+import 'react-native-gesture-handler'; // Must be first import
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { StyleSheet, View, FlatList, Alert } from 'react-native';
-import { Provider as PaperProvider, Appbar, TextInput, Button, List, Checkbox, Text, FAB } from 'react-native-paper';
-import { supabase } from './lib/supabase';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import {
+  Provider as PaperProvider,
+  MD3DarkTheme,
+  MD3LightTheme,
+} from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useColorScheme } from 'react-native';
+import { AuthProvider } from './src/context/AuthContext';
+import { LanguageProvider } from './src/context/LanguageContext';
+import RootNavigator from './src/navigation/RootNavigator';
 
-type Todo = {
-  id: number;
-  title: string;
-  is_complete: boolean;
+// ─── Professional MD3 Theme — MUI-inspired palette ────────────────────────────
+
+const darkTheme = {
+  ...MD3DarkTheme,
+  colors: {
+    ...MD3DarkTheme.colors,
+    // Primary — Vibrant Orange
+    primary: '#ea7d2e',
+    onPrimary: '#ffffff',
+    primaryContainer: '#a65111',
+    onPrimaryContainer: '#ffecd9',
+    // Secondary — Slate
+    secondary: '#94a3b8',
+    onSecondary: '#1e293b',
+    secondaryContainer: '#334155',
+    onSecondaryContainer: '#cbd5e1',
+    // Error
+    error: '#f87171',
+    onError: '#7f1d1d',
+    // Backgrounds & surfaces
+    background: '#0f172a',       // slate-900
+    onBackground: '#f1f5f9',
+    surface: '#1e293b',          // slate-800
+    onSurface: '#f1f5f9',
+    surfaceVariant: '#334155',   // slate-700
+    onSurfaceVariant: '#94a3b8',
+    outline: '#475569',
+    elevation: {
+      level0: '#0f172a',
+      level1: '#1e293b',
+      level2: '#263244',
+      level3: '#2e3c52',
+      level4: '#344460',
+      level5: '#3b4d6e',
+    },
+  },
+};
+
+const lightTheme = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    // Primary — Vibrant Orange
+    primary: '#ea7d2e',
+    onPrimary: '#ffffff',
+    primaryContainer: '#fcead9',
+    onPrimaryContainer: '#8a4009',
+    // Secondary — Slate
+    secondary: '#475569',
+    onSecondary: '#ffffff',
+    secondaryContainer: '#e2e8f0',
+    onSecondaryContainer: '#0f172a',
+    // Error
+    error: '#dc2626',
+    onError: '#ffffff',
+    // Backgrounds & surfaces
+    background: '#f8fafc',       // slate-50
+    onBackground: '#0f172a',
+    surface: '#ffffff',
+    onSurface: '#0f172a',
+    surfaceVariant: '#f1f5f9',
+    onSurfaceVariant: '#475569',
+    outline: '#cbd5e1',
+    elevation: {
+      level0: '#f8fafc',
+      level1: '#ffffff',
+      level2: '#f1f5f9',
+      level3: '#e2e8f0',
+      level4: '#cbd5e1',
+      level5: '#b6c5d4',
+    },
+  },
 };
 
 export default function App() {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [newTodo, setNewTodo] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetchTodos();
-  }, []);
-
-  const fetchTodos = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('todos')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error(error);
-      Alert.alert('Error fetching todos', error.message);
-    } else {
-      setTodos(data || []);
-    }
-    setLoading(false);
-  };
-
-  const addTodo = async () => {
-    if (!newTodo.trim()) return;
-
-    const { data, error } = await supabase
-      .from('todos')
-      .insert([{ title: newTodo, is_complete: false }])
-      .select();
-
-    if (error) {
-      Alert.alert('Error adding todo', error.message);
-    } else {
-      if (data) {
-        setTodos([data[0], ...todos]);
-        setNewTodo('');
-      }
-    }
-  };
-
-  const toggleTodo = async (id: number, is_complete: boolean) => {
-    // Optimistic update
-    setTodos(todos.map(t => t.id === id ? { ...t, is_complete: !is_complete } : t));
-
-    const { error } = await supabase
-      .from('todos')
-      .update({ is_complete: !is_complete })
-      .eq('id', id);
-
-    if (error) {
-      Alert.alert('Error updating todo', error.message);
-      fetchTodos(); // Revert on error
-    }
-  };
-
-  const deleteTodo = async (id: number) => {
-    // Optimistic update
-    setTodos(todos.filter(t => t.id !== id));
-
-    const { error } = await supabase
-      .from('todos')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      Alert.alert('Error deleting todo', error.message);
-      fetchTodos(); // Revert on error
-    }
-  };
+  const scheme = useColorScheme();
+  const theme = scheme === 'dark' ? darkTheme : lightTheme;
 
   return (
     <SafeAreaProvider>
-      <PaperProvider>
-        <SafeAreaView style={styles.container}>
-          <StatusBar style="auto" />
-          
-          <Appbar.Header>
-            <Appbar.Content title="Seeara Todos" />
-          </Appbar.Header>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              label="New Task"
-              value={newTodo}
-              onChangeText={setNewTodo}
-              style={styles.input}
-              mode="outlined"
-              right={<TextInput.Icon icon="plus" onPress={addTodo} />}
-              onSubmitEditing={addTodo}
-            />
-          </View>
-
-          <FlatList
-            data={todos}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.listContent}
-            renderItem={({ item }) => (
-              <List.Item
-                title={item.title}
-                titleStyle={item.is_complete ? styles.completedText : undefined}
-                left={() => (
-                  <Checkbox
-                    status={item.is_complete ? 'checked' : 'unchecked'}
-                    onPress={() => toggleTodo(item.id, item.is_complete)}
-                  />
-                )}
-                right={(props) => (
-                  <Button {...props} onPress={() => deleteTodo(item.id)} textColor="red">
-                    Delete
-                  </Button>
-                )}
-                onPress={() => toggleTodo(item.id, item.is_complete)}
-              />
-            )}
-            refreshing={loading}
-            onRefresh={fetchTodos}
-          />
-        </SafeAreaView>
+      <PaperProvider theme={theme as any}>
+        <LanguageProvider>
+          <AuthProvider>
+            <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+            <RootNavigator />
+          </AuthProvider>
+        </LanguageProvider>
       </PaperProvider>
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  inputContainer: {
-    padding: 16,
-  },
-  input: {
-    marginBottom: 8,
-  },
-  listContent: {
-    paddingBottom: 100,
-  },
-  completedText: {
-    textDecorationLine: 'line-through',
-    color: '#888',
-  },
-});
