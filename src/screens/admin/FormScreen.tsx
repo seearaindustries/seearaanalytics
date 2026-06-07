@@ -11,6 +11,7 @@ import { supabase } from '../../../lib/supabase';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import AppHeader from '../../components/AppHeader';
+import RecipePickerModal from '../../components/RecipePickerModal';
 import { AdminTabParamList, ProductionLog, LogsStackParamList } from '../../types';
 import GradientButton from '../../components/GradientButton';
 
@@ -35,6 +36,7 @@ export default function FormScreen() {
   const [numBatches, setNumBatches] = useState('5');
   const [shift, setShift] = useState('Morning');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [recipeModalVisible, setRecipeModalVisible] = useState(false);
 
   // --- History State ---
   const [logs, setLogs] = useState<ProductionLog[]>([]);
@@ -268,17 +270,20 @@ export default function FormScreen() {
 
               <View style={styles.fieldRow}>
                 <Text style={styles.infoLabel}>{t.recipe}:</Text>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    dense
-                    mode="outlined"
-                    value={recipe}
-                    style={styles.numericInput}
-                    onChangeText={(val) => { setRecipe(val); if(errors.recipe) setErrors({...errors, recipe: ''}) }}
-                    error={!!errors.recipe}
-                  />
+                <Pressable onPress={() => setRecipeModalVisible(true)} style={styles.inputWrapper}>
+                  <View pointerEvents="none">
+                    <TextInput
+                      dense
+                      mode="outlined"
+                      value={recipe}
+                      style={styles.numericInput}
+                      editable={false}
+                      right={<TextInput.Icon icon="chevron-down" />}
+                      error={!!errors.recipe}
+                    />
+                  </View>
                   {!!errors.recipe && <HelperText type="error" visible style={styles.errorTextAbs}>{errors.recipe}</HelperText>}
-                </View>
+                </Pressable>
               </View>
               <Divider style={{ marginHorizontal: 16 }} />
 
@@ -372,6 +377,12 @@ export default function FormScreen() {
               </View>
             </Card>
           )}
+
+          <RecipePickerModal
+            visible={recipeModalVisible}
+            onDismiss={() => setRecipeModalVisible(false)}
+            onSelect={(selected) => { setRecipe(selected); if (errors.recipe) setErrors({ ...errors, recipe: '' }); }}
+          />
 
           {/* History Section */}
           <View style={styles.historyHeaderRow}>

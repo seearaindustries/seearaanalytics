@@ -1,4 +1,3 @@
-import 'react-native-gesture-handler'; // Must be first import
 import { StatusBar } from 'expo-status-bar';
 import {
   Provider as PaperProvider,
